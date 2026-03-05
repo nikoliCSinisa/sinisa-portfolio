@@ -31,6 +31,15 @@ Route::prefix('admin')
         
         Route::post('/projects/reorder', [AdminProjectController::class, 'reorder'])
             ->name('projects.reorder');
+
+        Route::post('/projects/{project}/images', [AdminProjectController::class, 'imagesStore'])
+            ->name('projects.images.store');
+
+        Route::delete('/projects/images/{image}', [AdminProjectController::class, 'imagesDestroy'])
+            ->name('projects.images.destroy');
+
+        Route::post('/projects/{project}/images/reorder', [AdminProjectController::class, 'imagesReorder'])
+            ->name('projects.images.reorder');
     });
 
 /*

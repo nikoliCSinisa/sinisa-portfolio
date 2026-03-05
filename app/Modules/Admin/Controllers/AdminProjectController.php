@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Modules\Portfolio\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use App\Modules\Portfolio\Models\ProjectImage;
 use Illuminate\Support\Facades\Storage;
+
 
 class AdminProjectController extends Controller
 {
@@ -185,6 +187,70 @@ class AdminProjectController extends Controller
             Project::where('id', $id)->update([
                 'sort_order' => $index + 1
             ]);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    public function imagesStore(Request $request, Project $project)
+    {
+        $request->validate([
+            'images' => ['required', 'array', 'min:1'],
+            'images.*' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ]);
+
+        $nextOrder = (int) ($project->images()->max('sort_order') ?? 0) + 1;
+
+        foreach ($request->file('images') as $file) {
+            $path = $file->store('projects/gallery', 'public');
+
+            $project->images()->create([
+                'image_path' => $path,
+                'sort_order' => $nextOrder,
+            ]);
+
+            $nextOrder++;
+        }
+
+        return redirect()
+            ->route('admin.projects.edit', $project)
+            ->with('success', 'Images uploaded.');
+    }
+
+    public function imagesDestroy(ProjectImage $image)
+    {
+        $projectId = $image->project_id;
+
+        if ($image->image_path && Storage::disk('public')->exists($image->image_path)) {
+            Storage::disk('public')->delete($image->image_path);
+        }
+
+        $image->delete();
+
+        return redirect()
+            ->route('admin.projects.edit', $projectId)
+            ->with('success', 'Image deleted.');
+    }
+
+    public function imagesReorder(Request $request, Project $project)
+    {
+        $ids = $request->input('ids');
+
+        if (!is_array($ids) || count($ids) === 0) {
+            return response()->json(['message' => 'Invalid ids'], 422);
+        }
+
+        // sigurnost: reorder samo slika koje pripadaju projektu
+        $allowed = $project->images()->whereIn('id', $ids)->pluck('id')->all();
+
+        $pos = 1;
+        foreach ($ids as $id) {
+            if (!in_array((int)$id, $allowed, true) && !in_array($id, $allowed, true)) {
+                continue;
+            }
+
+            ProjectImage::where('id', $id)->update(['sort_order' => $pos]);
+            $pos++;
         }
 
         return response()->json(['success' => true]);

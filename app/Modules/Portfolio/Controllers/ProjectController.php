@@ -32,9 +32,12 @@ class ProjectController extends Controller
             abort(404);
         }
 
+        // eager-load gallery images
+        $project->load(['images' => fn ($q) => $q->ordered()]);
+
         $canonical = url('/projects/' . $project->slug);
 
-        // SEO description: summary -> fallback na skraćen description
+        // SEO description: summary -> fallback
         $description = $project->summary
             ?: Str::limit(trim(preg_replace('/\s+/', ' ', $project->description ?? '')), 160);
 
@@ -42,7 +45,7 @@ class ProjectController extends Controller
             ? asset('storage/' . $project->cover_image_path)
             : null;
 
-        // Prev/Next (po sort_order pa id)
+        
         $prev = Project::published()
             ->where(function ($q) use ($project) {
                 $q->where('sort_order', '<', (int)($project->sort_order ?? 0))
@@ -67,7 +70,7 @@ class ProjectController extends Controller
             ->orderBy('id')
             ->first();
 
-        // Related (isti client ako postoji, inače featured; isključi trenutni)
+        
         $relatedQuery = Project::published()
             ->where('id', '!=', $project->id)
             ->ordered();

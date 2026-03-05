@@ -1,7 +1,8 @@
 <?php
 
 namespace App\Modules\Portfolio\Models;
-
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Modules\Portfolio\Models\ProjectImage;
 use Illuminate\Database\Eloquent\Model;
 
 class Project extends Model
@@ -40,5 +41,10 @@ class Project extends Model
     public function scopeOrdered($query)
     {
         return $query->orderBy('sort_order');
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(ProjectImage::class);
     }
 }

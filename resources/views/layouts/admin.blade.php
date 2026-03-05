@@ -181,5 +181,45 @@
 
             }
         </script>
+        <script>
+        (function () {
+            const elImages = document.getElementById('sortable-project-images');
+            if (!elImages || typeof Sortable === 'undefined') return;
+
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            // Uzmemo projectId iz URL-a /admin/projects/{id}/edit
+            const match = window.location.pathname.match(/\/admin\/projects\/(\d+)\/edit/);
+            const projectId = match ? match[1] : null;
+            if (!projectId) return;
+
+            new Sortable(elImages, {
+                animation: 150,
+                onEnd: async function () {
+                    const ids = [];
+                    elImages.querySelectorAll('[data-id]').forEach(x => ids.push(x.dataset.id));
+
+                    try {
+                        const res = await fetch(`/admin/projects/${projectId}/images/reorder`, {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: {
+                                'X-CSRF-TOKEN': csrf,
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify({ ids })
+                        });
+
+                        if (!res.ok) throw new Error('Reorder failed: ' + res.status);
+
+                    } catch (e) {
+                        console.error(e);
+                        alert('Reorder failed. Refresh the page and try again.');
+                    }
+                }
+            });
+        })();
+        </script>
     </body>
 </html>
